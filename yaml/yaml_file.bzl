@@ -1,4 +1,4 @@
-load("//:yaml.bzl", "load_yaml")
+load("//yaml:yaml.bzl", "load_yaml")
 
 YamlFileContentProvider = provider(
     doc = "yaml file content parsed to starlark dict",
@@ -16,7 +16,7 @@ yaml_file_content(
 """
 
 _BZL_CONTENT = """
-load("@com_flarebuild_starlark_yaml//:yaml_file.bzl", "YamlFileContentProvider")
+load("@build_flare_bazel_utility//yaml:yaml_file.bzl", "YamlFileContentProvider")
 
 CONTENT = %s
 

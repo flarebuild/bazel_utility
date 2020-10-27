@@ -1,0 +1,8 @@
+blackjack:
+  maybe_path: "../../blackjack"
+  remote: "https://github.com/flarebuild/blackjack"
+  commit: a99442eba11be8b638160a41e427ec2fdce426a7
+build_flare_bazel_deps:
+  maybe_path: "../../bazel_deps"
+  remote: "https://github.com/flarebuild/bazel_deps"
+  commit: 6cbce8c2297c82f59338e27b500c934f22856827

@@ -1,0 +1,9 @@
+[package]
+name = "linked_repos_checker"
+version = "0.1.0"
+authors = ["Gleb Kolobkov <gleyb@flare.build>"]
+edition = "2018"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.8"

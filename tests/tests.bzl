@@ -1,4 +1,4 @@
-load("//:yaml.bzl", "load_yaml")
+load("//yaml:yaml.bzl", "load_yaml")
 load("//:tests/validate_yaml.bzl", "validate_yaml", "assert_equal")
 load("@test_repo_yaml//:tests/test_content.yaml.bzl", _repo_yaml = "CONTENT")
 

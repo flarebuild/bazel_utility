@@ -1,0 +1,4 @@
+build --disk_cache=/tmp/flare/dc
+build --repository_cache=/tmp/flare/rc
+
+build --strategy_regexp=^Linking=local

@@ -1,1 +1,3 @@
 bazel-*
+.idea
+tool/linked_repos_checker/target

@@ -23,6 +23,16 @@ def _sanitize_str(val):
         val = val[1:len(val) - 1]
     return val
 
+def _parse_value(val):
+    if not val:
+        return None
+    elif val == "true" or val == "True":
+        return True
+    elif val == "false" or val == "False":
+        return False
+    
+    return _sanitize_str(val)
+
 def _line_def(line):
     is_array_elem = False
     if line[0] == '-' and line[1] == ' ':
@@ -52,7 +62,7 @@ def _line_def(line):
         is_array_elem = is_array_elem,
         is_end_colon = prev_is_colon,
         key = _sanitize_str(line[:key_end_pos] if key_end_pos else line[:last_pos]),
-        value = _sanitize_str(line[key_end_pos + 2:last_pos] if key_end_pos else None),
+        value = _parse_value(line[key_end_pos + 2:last_pos] if key_end_pos else None),
     )
 
 def _parse_new_state(line_def, cur_indent):

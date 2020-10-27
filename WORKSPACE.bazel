@@ -1,0 +1,36 @@
+workspace(name = "build_flare_bazel_utility")
+
+load("//:init_me.bzl", "init_me")
+init_me()
+
+# local_linked_repos
+load("//repo:local_linked_repos.bzl", "local_linked_repos")
+local_linked_repos(name = "local_linked_repos", config = "//deps:local_linked_repos.yaml")
+
+load("@local_linked_repos//:defs.bzl", "init_local_linked")
+init_local_linked()
+
+# deps
+load("@build_flare_bazel_deps//:deps.bzl", "compose_deps")
+compose_deps(name = "compose_deps", config = "//deps:deps.yaml")
+
+load("@compose_deps//:defs.bzl", "init_deps")
+init_deps()
+
+# rules_rust
+load("@io_bazel_rules_rust//rust:repositories.bzl", "rust_repositories")
+rust_repositories(version = "1.46.0", edition="2018")
+load("@io_bazel_rules_rust//:workspace.bzl", "rust_workspace")
+rust_workspace()
+
+#blackjack
+load("@blackjack//:workspace.bzl", "blackjack_cargo")
+blackjack_cargo()
+
+# defs
+load("//yaml:yaml_file.bzl", "yaml_file")
+yaml_file(
+    name = "test_repo_yaml",
+    src = "//:tests/test_content.yaml",
+)
+
