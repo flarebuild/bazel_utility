@@ -99,6 +99,9 @@ def _local_linked_repos_impl(repository_ctx):
         "def init_local_linked():",
         "    tools_deps()",
     ]
+
+    existing_locals = {}
+
     for dep, info in config.items():
         path = paths.normalize(
             "%s/%s" % (
@@ -108,8 +111,12 @@ def _local_linked_repos_impl(repository_ctx):
         )
         if repo_utils.check_exists(repository_ctx, path):
             content.append(_LOCAL_REPO_PATTERN % (dep, path))
+            existing_locals[dep] = path
         else:
             content.append(_GIT_REPO_PATTERN % (dep, info["remote"], info["commit"]))
+
+    content.append("")
+    content.append("existing_locals = " + str(existing_locals))
 
     repository_ctx.file("check.sh", "$@")
     config_label = repository_ctx.attr.config
