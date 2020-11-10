@@ -10,7 +10,7 @@ _LOCAL_REPO_PATTERN = """
 """
 
 _GIT_REPO_PATTERN = """
-    native.git_repository(
+    git_repository(
         name = "%s",
         remote = "%s",
         commit = "%s",
@@ -95,6 +95,7 @@ def _local_linked_repos_impl(repository_ctx):
     config = load_yaml(repository_ctx.read(repository_ctx.attr.config))
     content = [
         """load("@build_flare_bazel_utility//tool:tools_deps.bzl", "tools_deps")""",
+        """load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")""",
         "",
         "def init_local_linked():",
         "    tools_deps()",
