@@ -40,17 +40,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let base_dir = config_path.parent().unwrap();
     for (dep, mut desc) in data.into_iter() {
-        let dir_path = build_from_paths!(base_dir, &desc.maybe_path)
-            .canonicalize()?;
+        let dir_path = build_from_paths!(base_dir, &desc.maybe_path);
+        println!("Checking {}", dir_path.display().to_string());
         if !dir_path.exists() {
+            println!("not exists");
             new_data.insert(dep, desc);
             continue
         }
 
         let dir = dir_path.to_str().unwrap();
-        let last_comit_res = Command::new(&last_commit_getter)
-            .arg(dir)
-            .output()?;
+        let mut cmd = Command::new(&last_commit_getter);
+        let checker = cmd.arg(dir);
+        let last_comit_res = checker.output()?;
 
         if !last_comit_res.status.success() {
             println!("{}", String::from_utf8_lossy(&last_comit_res.stdout));

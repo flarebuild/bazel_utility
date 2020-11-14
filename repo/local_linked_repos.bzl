@@ -17,12 +17,11 @@ _GIT_REPO_PATTERN = """
     )
 """
 
-_LAST_COMMIT_GETTER = """
-
-#!/usr/bin/env bash
+_LAST_COMMIT_GETTER = """#!/usr/bin/env bash
 set -eu
 
-if [[ ${GIT_INDEX_FILE} && ${GIT_INDEX_FILE-x} ]]; then
+if [[ -v GIT_INDEX_FILE ]]; then
+    echo backup GIT_INDEX_FILE: "${GIT_INDEX_FILE}"
     GIT_INDEX_FILE_BAK=${GIT_INDEX_FILE}
     unset GIT_INDEX_FILE
 fi
@@ -59,7 +58,8 @@ require_clean_work_tree $1
 
 /usr/bin/env git -C $1 rev-parse HEAD
 
-if [[ ${GIT_INDEX_FILE_BAK} && ${GIT_INDEX_FILE_BAK-x} ]]; then
+if [[ -v GIT_INDEX_FILE_BAK ]]; then
+    echo restoring GIT_INDEX_FILE: "$GIT_INDEX_FILE_BAK"
     export GIT_INDEX_FILE="$GIT_INDEX_FILE_BAK"
 fi
 
