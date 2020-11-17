@@ -1,7 +1,8 @@
 use std::env;
+use std::fmt;
 use std::{fs, fs::OpenOptions};
 use std::path::Path;
-use std::process::Command;
+use std::process::{ Command, Output };
 use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +12,18 @@ struct DepDesc {
     remote: String,
     commit: Option<String>,
 }
+
+type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>;
+
+#[derive(Debug)]
+struct ExitCodeError(i32, String);
+impl fmt::Display for ExitCodeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} - {}", self.0, self.1)
+    }
+}
+
+impl std::error::Error for ExitCodeError {}
 
 macro_rules! build_from_paths {
     ($base:expr, $($segment:expr),+) => {{
@@ -22,10 +35,23 @@ macro_rules! build_from_paths {
     }}
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn check_exit_code(out: &Output, print_stderr: bool) -> Result<()> {
+    if !out.status.success() {
+        return Err(Box::new(ExitCodeError(
+            out.status.code().unwrap(),
+            if print_stderr {
+                String::from_utf8_lossy(&out.stderr).to_string()
+            } else {
+                "".to_owned()
+            }
+        )))
+    }
+    Ok(())
+}
+
+fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
-    let last_commit_getter = Path::new(&args[1]).canonicalize()?;
-    let config = &args[2];
+    let config = &args[1];
     let workspace_dir = env::var("BUILD_WORKSPACE_DIRECTORY")?;
     let config_path_str = format!("{}/{}", workspace_dir, config);
     let config_path = Path::new(&config_path_str);
@@ -40,35 +66,70 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let base_dir = config_path.parent().unwrap();
     for (dep, mut desc) in data.into_iter() {
-        let dir_path = build_from_paths!(base_dir, &desc.maybe_path);
+        let mut dir_path = build_from_paths!(base_dir, &desc.maybe_path);
         println!("Checking {}", dir_path.display().to_string());
         if !dir_path.exists() {
             println!("not exists");
             new_data.insert(dep, desc);
             continue
         }
+        dir_path = dir_path.canonicalize()?;
 
         let dir = dir_path.to_str().unwrap();
-        let mut cmd = Command::new(&last_commit_getter);
-        let checker = cmd.arg(dir);
-        let last_comit_res = checker.output()?;
 
-        if !last_comit_res.status.success() {
-            println!("{}", String::from_utf8_lossy(&last_comit_res.stdout));
-            println!("{}", String::from_utf8_lossy(&last_comit_res.stderr));
-            panic!(
-                "linked repo \"{}\" located at {:?} contains unstaged changes, please commit them first",
-                &dep,
-                dir
-            )
+        check_exit_code(&Command::new("/usr/bin/env")
+            .env_clear()
+            .args(&["git", "-C", &dir, "update-index", "-q", "--ignore-submodules", "--refresh",])
+            .output()?, true)?;
+
+        if !Command::new("/usr/bin/env")
+            .env_clear()
+            .args(&["git", "-C", &dir, "diff-files", "--quiet", "--ignore-submodules"])
+            .output()?
+            .status
+            .success() {
+
+            println!("linked repo \"{}\" located at {:?}, git has unstaged changes.", &dep, dir);
+            println!("{}", String::from_utf8_lossy(
+                &Command::new("/usr/bin/env")
+                    .env_clear()
+                    .args(&["git", "-C", &dir, "diff-files", "--name-status", "-r", "--ignore-submodules"])
+                    .output()?
+                    .stdout));
+
+            println!("Please commit or stash them.");
+            return Err(Box::new(ExitCodeError(1, String::new())));
         }
 
-        let last_commit = String::from_utf8_lossy(&last_comit_res.stdout)
-            .trim()
-            .to_owned();
-        desc.commit = Some(last_commit);
+        if !Command::new("/usr/bin/env")
+            .env_clear()
+            .args(&["git", "-C", &dir, "diff-index", "--cached", "--quiet", "HEAD", "--ignore-submodules"])
+            .output()?
+            .status
+            .success() {
+
+            println!("linked repo \"{}\" located at {:?}, git index contains uncommitted changes.", &dep, dir);
+            println!("{}", String::from_utf8_lossy(
+                &Command::new("/usr/bin/env")
+                    .env_clear()
+                    .args(&["git", "-C", &dir, "diff-index",  "--cached", "--name-status", "-r", "--ignore-submodules"])
+                    .output()?
+                    .stdout));
+
+            println!("Please commit or stash them.");
+            return Err(Box::new(ExitCodeError(1, String::new())));
+        }
+
+        desc.commit = Some(String::from_utf8_lossy(
+            &Command::new("/usr/bin/env")
+                .env_clear()
+                .args(&["git", "-C", &dir, "rev-parse", "HEAD"])
+                .output()?
+                .stdout).trim().to_owned());
+
         new_data.insert(dep, desc);
     }
+
     let serialized = serde_yaml::to_string(&new_data)?
         .split("\n")
         .skip(1)

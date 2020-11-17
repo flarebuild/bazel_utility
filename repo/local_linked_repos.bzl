@@ -17,70 +17,15 @@ _GIT_REPO_PATTERN = """
     )
 """
 
-_LAST_COMMIT_GETTER = """#!/usr/bin/env bash
-set -eu
-
-if [[ -v GIT_INDEX_FILE ]]; then
-    echo backup GIT_INDEX_FILE: "${GIT_INDEX_FILE}"
-    GIT_INDEX_FILE_BAK=${GIT_INDEX_FILE}
-    unset GIT_INDEX_FILE
-fi
-
-require_clean_work_tree() {
-    # Update the index
-    /usr/bin/env git -C $1 update-index -q --ignore-submodules --refresh
-    err=0
-
-    # Disallow unstaged changes in the working tree
-    if ! /usr/bin/env git -C $1 diff-files --quiet --ignore-submodules --
-    then
-        echo >&2 "you have unstaged changes."
-        /usr/bin/env git -C $1 diff-files --name-status -r --ignore-submodules -- >&2
-        err=1
-    fi
-
-    # Disallow uncommitted changes in the index
-    if ! /usr/bin/env git -C $1 diff-index --cached --quiet HEAD --ignore-submodules --
-    then
-        echo >&2 "your index contains uncommitted changes."
-        /usr/bin/env git -C $1 diff-index --cached --name-status -r --ignore-submodules HEAD -- >&2
-        err=1
-    fi
-
-    if [ $err = 1 ]
-    then
-        echo >&2 "Please commit or stash them."
-        exit 1
-    fi
-}
-
-require_clean_work_tree $1
-
-/usr/bin/env git -C $1 rev-parse HEAD
-
-if [[ -v GIT_INDEX_FILE_BAK ]]; then
-    echo restoring GIT_INDEX_FILE: "$GIT_INDEX_FILE_BAK"
-    export GIT_INDEX_FILE="$GIT_INDEX_FILE_BAK"
-fi
-
-"""
-
 _BUILD_PATTERN = """
-sh_binary(
-    name = "last_commit_getter",
-    srcs = ["last_commit_getter.sh"],
-)
-
 sh_binary(
     name = "check",
     srcs = ["check.sh"],
     args = [
         "$(location @build_flare_bazel_utility//tool/linked_repos_checker)",
-        "$(location :last_commit_getter)",
         "%s/%s",
     ],
     data = [
-        ":last_commit_getter",
         "@build_flare_bazel_utility//tool/linked_repos_checker",
     ],
     tags = [
@@ -131,10 +76,6 @@ def _local_linked_repos_impl(repository_ctx):
     repository_ctx.file(
         "defs.bzl",
         "\n".join(content),
-    )
-    repository_ctx.file(
-        "last_commit_getter.sh",
-        _LAST_COMMIT_GETTER
     )
 
 local_linked_repos = repository_rule(
