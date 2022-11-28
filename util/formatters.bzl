@@ -2,7 +2,7 @@ def _bazelify(value):
     return value.replace(".", "_").replace("-", "_")
 
 def _add_indent(a_str, indent, indentstr = "    "):
-    return "\n".join([ (indentstr * indent) + a for a in a_str.split("\n")])
+    return "\n".join([(indentstr * indent) + a for a in a_str.split("\n")])
 
 def _q(x):
     return "\"%s\"" % x
@@ -14,7 +14,8 @@ def _format_dict(x):
         return "{ %s: %s }" % (_q(x.keys()[0]), x.values()[0])
 
     return "{\n" + "\n".join([
-        "        %s: %s," % (_q(a[0]), _q(a[1])) for a in x.items()
+        "        %s: %s," % (_q(a[0]), _q(a[1]))
+        for a in x.items()
     ]) + "    \n}"
 
 def _to_arg(x):
@@ -29,14 +30,15 @@ def _to_arg(x):
 def _to_kv_pair(x):
     return "%s = %s" % (x[0], _to_arg(x[1]))
 
-def _format_call(rule, args):
+def _format_call(rule, args = []):
     if not args:
         return rule + "()"
     elif len(args) == 1:
         return rule + "(%s)" % _to_kv_pair(args.items()[0])
-    
+
     return rule + "(\n" + "\n".join([
-        "    %s," % _to_kv_pair(x) for x in args.items()
+        "    %s," % _to_kv_pair(x)
+        for x in args.items()
     ]) + "\n)"
 
 f = struct(

@@ -1,13 +1,13 @@
 def _is_valid_line_start(ch):
-    return ch == '-' or ch == '"' or ch.isalpha() or ch.isdigit()
+    return ch == "-" or ch == '"' or ch.isalpha() or ch.isdigit()
 
 def _check_line_for_ident(line):
     indent_ws = 0
-    for i in range( len(line) ):
+    for i in range(len(line)):
         ch = line[i]
-        if ch == ' ':
+        if ch == " ":
             indent_ws += 1
-        elif ch == '#':
+        elif ch == "#":
             return None
         elif _is_valid_line_start(ch):
             return (indent_ws, line[indent_ws:])
@@ -30,31 +30,31 @@ def _parse_value(val):
         return True
     elif val == "false" or val == "False":
         return False
-    
+
     return _sanitize_str(val)
 
 def _line_def(line):
     is_array_elem = False
-    if line[0] == '-' and line[1] == ' ':
+    if line[0] == "-" and line[1] == " ":
         is_array_elem = True
         line = line[2:]
     key_end_pos = None
     prev_is_colon = False
-    for i in range( len(line) ):
+    for i in range(len(line)):
         ch = line[i]
         if prev_is_colon:
             if ch == " ":
-                if key_end_pos:
-                    fail("parse error: " + line)
-                key_end_pos = i - 1
-            prev_is_colon = False
+                if not key_end_pos:
+                    key_end_pos = i - 1
+            else:
+                prev_is_colon = False
         if ch == ":":
             prev_is_colon = True
 
     if prev_is_colon:
-        if is_array_elem or key_end_pos:
+        if is_array_elem:
             fail("parse error: " + line)
-        last_pos = len(line) - 1
+        last_pos = key_end_pos if key_end_pos else len(line) - 1
     else:
         last_pos = len(line)
 
@@ -110,9 +110,9 @@ def _insert(cur_state, key, value):
         if value:
             if type(key) == "dict":
                 key.update(value)
-                return 
+                return
             else:
-                to_add = { key: value }
+                to_add = {key: value}
         else:
             to_add = key
         cur_state["cur"].append(to_add)
@@ -124,14 +124,14 @@ def _process_line_def(cur_state, line_def):
     cur_state["expecting_nested"] = expecting_nested
     may_expect_nested = cur_state["array_processing"] and line_def.value != None
     cur_state["may_expect_nested"] = may_expect_nested
-    
+
     if expecting_nested:
         cur_state["cur_advance_key"] = line_def.key
     else:
         _insert(cur_state, line_def.key, line_def.value)
         if may_expect_nested:
-            cur =  cur_state["cur"]
-            cur_state["cur_advance_key"] = cur[ len(cur) - 1 ]
+            cur = cur_state["cur"]
+            cur_state["cur_advance_key"] = cur[len(cur) - 1]
         else:
             cur_state["cur_advance_key"] = None
 
@@ -155,7 +155,7 @@ def load_yaml(content):
     cur_state = None
 
     for line in content.split("\n"):
-        line_check_res =  _check_line_for_ident(line)
+        line_check_res = _check_line_for_ident(line)
         if line_check_res == None:
             continue
 
